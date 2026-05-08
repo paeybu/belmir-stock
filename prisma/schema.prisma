@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  password  String
+  name      String?
+  createdAt DateTime   @default(now())
+  movements Movement[]
+}
+
+model Product {
+  id                String     @id @default(uuid())
+  barcode           String     @unique
+  name              String
+  unit              String     @default("each")
+  lowStockThreshold Int?
+  notes             String?
+  archived          Boolean    @default(false)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  stock             Stock[]
+  movements         Movement[]
+}
+
+model Location {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  archived    Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  stock       Stock[]
+  movements   Movement[]
+}
+
+model Stock {
+  productId  String
+  locationId String
+  quantity   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+
+  @@id([productId, locationId])
+}
+
+model Movement {
+  id              String   @id @default(uuid())
+  productId       String
+  locationId      String
+  change          Int
+  userId          String
+  reason          String?
+  transferGroupId String?
+  note            String?
+  createdAt       DateTime @default(now())
+  product         Product  @relation(fields: [productId], references: [id])
+  location        Location @relation(fields: [locationId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+}
