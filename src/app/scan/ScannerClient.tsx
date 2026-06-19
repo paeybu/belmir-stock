@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import { Scanner, type IDetectedBarcode, type IScannerError } from '@yudiel/react-qr-scanner'
 import { applyMovement, transferStock } from '@/lib/actions/movements'
 
 type Location = { id: string; name: string }
@@ -12,7 +12,10 @@ type Mode = 'in' | 'out' | 'transfer'
 const LOCATION_KEY = 'belmir_last_location'
 
 export default function ScannerClient({ locations }: { locations: Location[] }) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null)
+  // Read inside the scan handler so it always uses the current location and won't
+  // re-fire on a barcode we're already handling, regardless of render timing.
+  const lastScannedRef = useRef<string | null>(null)
+  const locationIdRef = useRef('')
   const [locationId, setLocationId] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem(LOCATION_KEY) ?? locations[0]?.id ?? ''
     return locations[0]?.id ?? ''
@@ -30,60 +33,47 @@ export default function ScannerClient({ locations }: { locations: Location[] }) 
   const [newProductUnit, setNewProductUnit] = useState('each')
 
   useEffect(() => {
+    locationIdRef.current = locationId
     if (locationId) localStorage.setItem(LOCATION_KEY, locationId)
   }, [locationId])
 
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      'qr-reader',
-      {
-        fps: 10,
-        qrbox: { width: 250, height: 180 },
-        supportedScanTypes: [],
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.UPC_E,
-        ],
-      },
-      false
-    )
+  async function handleScan(detected: IDetectedBarcode[]) {
+    const decodedText = detected[0]?.rawValue
+    if (!decodedText || lastScannedRef.current === decodedText) return
+    lastScannedRef.current = decodedText
+    setStatus(null)
+    setShowNewProduct(false)
+    setQuantity(1)
+    setNote('')
+    setScannedBarcode(decodedText)
 
-    scanner.render(
-      async (decodedText) => {
-        if (scannedBarcode === decodedText) return
-        setScannedBarcode(decodedText)
-        setStatus(null)
+    const res = await fetch(`/api/products/by-barcode?barcode=${encodeURIComponent(decodedText)}&locationId=${locationIdRef.current}`)
+    if (res.ok) {
+      const data = await res.json()
+      if (data.found) {
+        setProduct(data.product)
         setShowNewProduct(false)
-        setQuantity(1)
-        setNote('')
+      } else {
+        setProduct(null)
+        setShowNewProduct(true)
+        setNewProductName('')
+      }
+    }
+  }
 
-        const res = await fetch(`/api/products/by-barcode?barcode=${encodeURIComponent(decodedText)}&locationId=${locationId}`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data.found) {
-            setProduct(data.product)
-            setShowNewProduct(false)
-          } else {
-            setProduct(null)
-            setShowNewProduct(true)
-            setNewProductName('')
-          }
-        }
-      },
-      () => {}
-    )
-
-    scannerRef.current = scanner
-    return () => { scanner.clear().catch(() => {}) }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  function handleScanError(error: IScannerError) {
+    const friendly: Partial<Record<IScannerError['kind'], string>> = {
+      'permission-denied': 'Camera permission denied — allow camera access in your browser settings, then reload.',
+      'no-camera': 'No camera found on this device.',
+      'in-use': 'The camera is in use by another app. Close it and try again.',
+      'insecure-context': 'Camera requires a secure (HTTPS) connection.',
+      unsupported: 'This browser can’t access the camera for scanning.',
+    }
+    setStatus(`Error: ${friendly[error.kind] ?? error.message}`)
+  }
 
   function reset() {
+    lastScannedRef.current = null
     setScannedBarcode(null)
     setProduct(null)
     setQuantity(1)
@@ -208,7 +198,17 @@ export default function ScannerClient({ locations }: { locations: Location[] }) 
 
       {/* Scanner */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-        <div id="qr-reader" className="w-full" />
+        <Scanner
+          onScan={handleScan}
+          onError={handleScanError}
+          paused={!!scannedBarcode}
+          formats={['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']}
+          constraints={{ facingMode: 'environment' }}
+          allowMultiple
+          scanDelay={400}
+          components={{ finder: true, torch: true }}
+          styles={{ container: { width: '100%' }, video: { width: '100%' } }}
+        />
       </div>
 
       {/* Product found */}
