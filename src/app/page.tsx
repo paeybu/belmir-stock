@@ -24,72 +24,127 @@ export default async function DashboardPage(props: PageProps<'/'>) {
   type Loc = (typeof locations)[number]
   type StockItem = (typeof stock)[number]
 
+  const isLow = (s: StockItem) =>
+    s.product.lowStockThreshold != null && s.quantity <= s.product.lowStockThreshold
+  const lowCount = stock.filter(isLow).length
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Stock Dashboard</h1>
-        <Link href="/scan" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-          Scan
-        </Link>
-      </div>
+      {/* ── Document head ─────────────────────────────────────────────── */}
+      <header className="mb-6">
+        <p className="kicker">Stock Control · Manifest</p>
+        <div className="mt-1.5 flex items-end justify-between gap-4">
+          <h1 className="h-display text-3xl md:text-[2.6rem]">Stock on hand</h1>
+          <Link href="/scan" className="btn-signal hidden sm:inline-flex">
+            <span aria-hidden>+</span> Scan
+          </Link>
+        </div>
 
-      <form className="flex gap-2 mb-4">
+        {/* Ledger summary strip — counts in mono, not gradient cards */}
+        <dl className="mt-4 sheet grid grid-cols-3 divide-x divide-line">
+          <SummaryCell label="Line items" value={stock.length} />
+          <SummaryCell label="Locations" value={locations.length} />
+          <SummaryCell label="Low stock" value={lowCount} alert={lowCount > 0} />
+        </dl>
+      </header>
+
+      {/* ── Filters ───────────────────────────────────────────────────── */}
+      <form className="flex flex-wrap gap-2 mb-4">
         <input
           name="q"
           defaultValue={q as string}
-          placeholder="Search products..."
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm flex-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Search products…"
+          className="field flex-1 min-w-[8rem]"
         />
-        <select
-          name="location"
-          defaultValue={locationFilter as string}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <select name="location" defaultValue={locationFilter as string} className="field w-auto">
           <option value="">All locations</option>
           {locations.map((l: Loc) => (
             <option key={l.id} value={l.id}>{l.name}</option>
           ))}
         </select>
-        <button type="submit" className="bg-gray-100 border border-gray-300 rounded-lg px-4 py-2 text-sm hover:bg-gray-200">
-          Filter
-        </button>
+        <button type="submit" className="btn-quiet">Filter</button>
       </form>
 
+      {/* ── Count-sheet ───────────────────────────────────────────────── */}
       {stock.length === 0 ? (
-        <p className="text-gray-500 text-center py-12">No stock entries found.</p>
+        <Empty>No stock recorded yet. Scan an item in to start the manifest.</Empty>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 text-left">
-              <tr>
-                <th className="px-4 py-3 font-medium">Product</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium text-right">Quantity</th>
-                <th className="px-4 py-3 font-medium">Unit</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {stock.map((s: StockItem) => {
-                const isLow = s.product.lowStockThreshold != null && s.quantity <= s.product.lowStockThreshold
-                return (
-                  <tr key={`${s.productId}-${s.locationId}`} className={isLow ? 'bg-red-50' : ''}>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{s.product.name}</div>
-                      <div className="text-xs text-gray-400">{s.product.barcode}</div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{s.location.name}</td>
-                    <td className={`px-4 py-3 text-right font-mono font-semibold ${isLow ? 'text-red-600' : 'text-gray-900'}`}>
+        <div className="sheet overflow-hidden">
+          {/* desktop column header */}
+          <div className="hidden md:grid grid-cols-[2.2fr_1.3fr_auto_4rem] gap-3 px-4 py-2.5 border-b border-line bg-ink/[0.03]">
+            <ColHead>Product</ColHead>
+            <ColHead>Location</ColHead>
+            <ColHead className="text-right">Qty</ColHead>
+            <ColHead>Unit</ColHead>
+          </div>
+
+          <ul className="divide-y divide-line">
+            {stock.map((s: StockItem) => {
+              const low = isLow(s)
+              return (
+                <li
+                  key={`${s.productId}-${s.locationId}`}
+                  className={`grid grid-cols-[1fr_auto] md:grid-cols-[2.2fr_1.3fr_auto_4rem] gap-x-3 gap-y-1 items-center px-4 py-3 ${
+                    low ? 'border-l-2 border-out bg-out/[0.04]' : 'border-l-2 border-transparent'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-ink truncate">{s.product.name}</div>
+                    <div className="font-mono text-[11px] text-muted truncate">{s.product.barcode}</div>
+                  </div>
+
+                  {/* location: chip on mobile (under name col), plain on desktop */}
+                  <div className="hidden md:block text-sm text-muted truncate">{s.location.name}</div>
+
+                  <div className="flex items-center justify-end gap-2">
+                    {low && <span className="stamp text-out hidden md:inline-flex">Low</span>}
+                    <span className={`font-mono text-lg font-semibold ${low ? 'text-out' : 'text-ink'}`}>
                       {s.quantity}
-                      {isLow && <span className="ml-1 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">Low</span>}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">{s.product.unit}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                    </span>
+                  </div>
+
+                  <div className="hidden md:block font-mono text-xs text-muted">{s.product.unit}</div>
+
+                  {/* mobile-only meta line */}
+                  <div className="md:hidden col-span-2 flex items-center gap-2 -mt-0.5">
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                      {s.location.name} · {s.product.unit}
+                    </span>
+                    {low && <span className="stamp text-out">Low</span>}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       )}
+    </div>
+  )
+}
+
+function SummaryCell({ label, value, alert = false }: { label: string; value: number; alert?: boolean }) {
+  return (
+    <div className="px-4 py-3">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{label}</dt>
+      <dd className={`font-mono text-2xl font-semibold mt-0.5 ${alert ? 'text-out' : 'text-ink'}`}>
+        {value}
+      </dd>
+    </div>
+  )
+}
+
+function ColHead({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`font-mono text-[10px] uppercase tracking-[0.14em] text-muted ${className}`}>
+      {children}
+    </span>
+  )
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="sheet text-center py-14 px-6">
+      <p className="text-muted text-sm">{children}</p>
     </div>
   )
 }

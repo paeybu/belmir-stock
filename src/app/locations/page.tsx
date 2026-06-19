@@ -5,52 +5,75 @@ import Link from 'next/link'
 export default async function LocationsPage() {
   const locations = await prisma.location.findMany({ orderBy: { name: 'asc' } })
   type Loc = (typeof locations)[number]
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Locations</h1>
-        <Link href="/locations/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700">
-          Add location
+      <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="kicker">Stock Control · Sites</p>
+          <h1 className="h-display text-3xl md:text-[2.6rem] mt-1.5">Locations</h1>
+        </div>
+        <Link href="/locations/new" className="btn-signal shrink-0">
+          <span aria-hidden>+</span> Add location
         </Link>
-      </div>
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600 text-left">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
+      </header>
+
+      {locations.length === 0 ? (
+        <div className="sheet text-center py-14 px-6">
+          <p className="text-muted text-sm">No locations yet. Add a shelf, room, or van to track stock against.</p>
+        </div>
+      ) : (
+        <div className="sheet overflow-hidden">
+          <div className="hidden md:grid grid-cols-[1.4fr_2fr_5rem_auto] gap-3 px-4 py-2.5 border-b border-line bg-ink/[0.03]">
+            <ColHead>Name</ColHead>
+            <ColHead>Description</ColHead>
+            <ColHead>Status</ColHead>
+            <ColHead className="text-right">Actions</ColHead>
+          </div>
+
+          <ul className="divide-y divide-line">
             {locations.map((l: Loc) => (
-              <tr key={l.id} className={l.archived ? 'opacity-50' : ''}>
-                <td className="px-4 py-3 font-medium text-gray-900">{l.name}</td>
-                <td className="px-4 py-3 text-gray-500">{l.description ?? '—'}</td>
-                <td className="px-4 py-3">
-                  {l.archived ? (
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">Archived</span>
-                  ) : (
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Active</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <Link href={`/locations/${l.id}/edit`} className="text-blue-600 hover:underline mr-3 text-xs">Edit</Link>
+              <li
+                key={l.id}
+                className={`grid grid-cols-2 md:grid-cols-[1.4fr_2fr_5rem_auto] gap-x-3 gap-y-1.5 items-center px-4 py-3 ${
+                  l.archived ? 'opacity-55' : ''
+                }`}
+              >
+                <div className="font-medium text-ink truncate">{l.name}</div>
+
+                <div className="hidden md:block text-sm text-muted truncate">{l.description ?? '—'}</div>
+
+                <div className="justify-self-end md:justify-self-start">
+                  <span className={`stamp ${l.archived ? 'text-muted' : 'text-in'}`}>
+                    {l.archived ? 'Archived' : 'Active'}
+                  </span>
+                </div>
+
+                {l.description && (
+                  <div className="md:hidden col-span-2 text-[13px] text-muted truncate">{l.description}</div>
+                )}
+
+                <div className="col-span-2 md:col-span-1 flex items-center gap-4 md:justify-end font-mono text-[11px] uppercase tracking-wider">
+                  <Link href={`/locations/${l.id}/edit`} className="text-transfer hover:underline">Edit</Link>
                   {!l.archived && (
-                    <form action={archiveLocation.bind(null, l.id)} className="inline">
-                      <button type="submit" className="text-gray-500 hover:text-gray-700 text-xs">Archive</button>
+                    <form action={archiveLocation.bind(null, l.id)}>
+                      <button type="submit" className="text-muted hover:text-out transition-colors">Archive</button>
                     </form>
                   )}
-                </td>
-              </tr>
+                </div>
+              </li>
             ))}
-          </tbody>
-        </table>
-        {locations.length === 0 && (
-          <p className="text-gray-500 text-center py-12">No locations yet.</p>
-        )}
-      </div>
+          </ul>
+        </div>
+      )}
     </div>
+  )
+}
+
+function ColHead({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`font-mono text-[10px] uppercase tracking-[0.14em] text-muted ${className}`}>
+      {children}
+    </span>
   )
 }

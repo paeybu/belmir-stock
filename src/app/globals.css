@@ -1,11 +1,247 @@
 @import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Belmir Stock — "The Manifest" design tokens ─────────────────────────────
+   A stockroom control tool: ink on kraft paper, monospace counts, hazard amber.
+   Fonts are injected as CSS vars by next/font in layout.tsx.                   */
+@theme {
+  --color-ink: #211c17; /* stamp ink — text & structure        */
+  --color-paper: #f0ece3; /* kraft paper — page background        */
+  --color-card: #fcfbf7; /* label paper — raised panels         */
+  --color-line: #dbd3c3; /* kraft border                        */
+  --color-muted: #6e665a; /* secondary text (AA on card/paper)   */
+
+  --color-signal: #e5900d; /* hazard amber — brand + primary CTAs */
+  --color-signal-ink: #2a1c05; /* text on amber (caution language)    */
+
+  --color-in: #2f6a43; /* ledger green — stock in / positive  */
+  --color-out: #b23121; /* signal red — stock out / low / neg  */
+  --color-transfer: #3b5a78; /* steel blue — transfer / info        */
+
+  --font-display: var(--font-archivo), 'Arial Narrow', sans-serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-card: 4px; /* crates have corners, not pills       */
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Tailwind v4 preflight no longer sets pointer cursors on buttons. */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Inputs/selects inherit the manifest look by default so every form is
+     consistent without repeating utility soup on each field. */
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
+  /* Visible keyboard focus everywhere — quality floor. */
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--color-signal);
+    color: var(--color-signal-ink);
+  }
+}
+
+@layer components {
+  /* ── The signature: a "stock tag" — mono, kraft-bordered, with a punched
+        hole on the left, like a physical shelf/hang tag. Used at signature
+        moments only (brand, section kickers, low-stock flag). ─────────────── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0.6rem 0.2rem 1.15rem;
+    position: relative;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+    border: 1px solid var(--color-line);
+    border-radius: 3px;
+    background-color: var(--color-card);
+    color: var(--color-ink);
+  }
+  /* the punched hole */
+  .tag::before {
+    content: '';
+    position: absolute;
+    left: 0.42rem;
+    top: 50%;
+    width: 0.38rem;
+    height: 0.38rem;
+    transform: translateY(-50%);
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    opacity: 0.55;
+  }
+
+  /* A flat "stamped" status mark — no hole, just inked text in a hairline box. */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 0.25rem 0.45rem;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+  }
+
+  /* Section kicker — the small mono routing line above a page title. */
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  /* Page/section title — Archivo, heavy, signage. */
+  .h-display {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  /* The "manifest" panel — a filed label-paper card. */
+  .sheet {
+    background-color: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  /* Form field shared look. */
+  .field {
+    width: 100%;
+    background-color: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: 3px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+  }
+  .field::placeholder {
+    color: var(--color-muted);
+  }
+  .field:focus {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 0;
+    border-color: var(--color-signal);
+  }
+
+  /* Field label — small mono meta. */
+  .field-label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: 0.3rem;
+  }
+
+  /* Primary action — hazard caution language: ink on amber. */
+  .btn-signal {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background-color: var(--color-signal);
+    color: var(--color-signal-ink);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.01em;
+    padding: 0.6rem 1rem;
+    border-radius: 3px;
+    border: 1px solid color-mix(in srgb, var(--color-signal) 80%, black);
+    transition: filter 0.12s ease;
+  }
+  .btn-signal:hover {
+    filter: brightness(1.06);
+  }
+  .btn-signal:disabled {
+    opacity: 0.5;
+  }
+
+  /* Secondary / quiet action. */
+  .btn-quiet {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    color: var(--color-ink);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    border-radius: 3px;
+    border: 1px solid var(--color-line);
+    transition: background-color 0.12s ease;
+  }
+  .btn-quiet:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 5%, transparent);
+  }
+
+  /* Industrial viewport corner ticks — wraps the live camera. */
+  .viewport-frame {
+    position: relative;
+    background-color: var(--color-ink);
+    border-radius: var(--radius-card);
+  }
+  .viewport-frame::before,
+  .viewport-frame::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--color-signal);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .viewport-frame::before {
+    top: 8px;
+    left: 8px;
+    border-right: none;
+    border-bottom: none;
+  }
+  .viewport-frame::after {
+    bottom: 8px;
+    right: 8px;
+    border-left: none;
+    border-top: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

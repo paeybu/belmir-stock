@@ -2,37 +2,49 @@ import { login } from '@/lib/actions/auth'
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="bg-white rounded-2xl shadow p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-6 text-center">Sign in</h1>
-        <form action={login} className="flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+    <div className="min-h-screen flex items-center justify-center -mt-6 -mb-28 md:-mb-10">
+      <div className="w-full max-w-sm">
+        {/* brand mark — the punched-hole tag signature, at the door */}
+        <div className="flex items-center gap-3 justify-center mb-8">
+          <span className="grid h-12 w-12 place-items-center rounded-[4px] bg-signal">
+            <span className="block h-4 w-4 rounded-full border-[2.5px] border-signal-ink/80" />
+          </span>
+          <div className="leading-none">
+            <span className="block font-display font-extrabold uppercase tracking-tight text-2xl">Belmir</span>
+            <span className="block font-mono text-[10px] uppercase tracking-[0.24em] text-muted mt-1">
+              Stock Control
+            </span>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        </div>
+
+        <div className="sheet overflow-hidden">
+          {/* hazard rule — the one accent at the entrance */}
+          <div
+            className="h-1.5"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(45deg, var(--color-ink) 0 7px, var(--color-signal) 7px 14px)',
+            }}
+          />
+          <div className="p-7">
+            <p className="kicker mb-5">Staff sign-in</p>
+            <form action={login} className="flex flex-col gap-4">
+              <div>
+                <label className="field-label">Email</label>
+                <input name="email" type="email" required autoComplete="email" className="field" />
+              </div>
+              <div>
+                <label className="field-label">Password</label>
+                <input name="password" type="password" required autoComplete="current-password" className="field" />
+              </div>
+              <button type="submit" className="btn-signal mt-2">Sign in</button>
+            </form>
           </div>
-          <button
-            type="submit"
-            className="bg-blue-600 text-white rounded-lg py-2 font-medium hover:bg-blue-700 transition-colors mt-2"
-          >
-            Sign in
-          </button>
-        </form>
+        </div>
+
+        <p className="text-center font-mono text-[10px] uppercase tracking-[0.18em] text-muted mt-5">
+          Authorised access only
+        </p>
       </div>
     </div>
   )
