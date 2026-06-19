@@ -11,6 +11,56 @@ type Mode = 'in' | 'out' | 'transfer'
 
 const LOCATION_KEY = 'belmir_last_location'
 
+// Each mode is color-coded so it's unmistakable which one is active. The same
+// color drives the active tab, the banner, the card border and the submit button.
+// Class strings are written out in full (no interpolated color names) so Tailwind
+// v4's static scanner picks them up.
+const MODE_CONFIG: Record<Mode, {
+  label: string
+  verb: string
+  description: string
+  icon: string
+  tab: string
+  badge: string
+  banner: string
+  cardBorder: string
+  button: string
+}> = {
+  in: {
+    label: 'Stock In',
+    verb: 'Stock in',
+    description: 'Adding stock to a location',
+    icon: '↓',
+    tab: 'bg-emerald-600 text-white shadow',
+    badge: 'bg-emerald-600',
+    banner: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    cardBorder: 'border-emerald-300',
+    button: 'bg-emerald-600 hover:bg-emerald-700',
+  },
+  out: {
+    label: 'Take Out',
+    verb: 'Take out',
+    description: 'Removing stock from a location',
+    icon: '↑',
+    tab: 'bg-rose-600 text-white shadow',
+    badge: 'bg-rose-600',
+    banner: 'bg-rose-50 border-rose-200 text-rose-800',
+    cardBorder: 'border-rose-300',
+    button: 'bg-rose-600 hover:bg-rose-700',
+  },
+  transfer: {
+    label: 'Transfer',
+    verb: 'Transfer',
+    description: 'Moving stock between locations',
+    icon: '⇄',
+    tab: 'bg-indigo-600 text-white shadow',
+    badge: 'bg-indigo-600',
+    banner: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+    cardBorder: 'border-indigo-300',
+    button: 'bg-indigo-600 hover:bg-indigo-700',
+  },
+}
+
 export default function ScannerClient({ locations }: { locations: Location[] }) {
   // Read inside the scan handler so it always uses the current location and won't
   // re-fire on a barcode we're already handling, regardless of render timing.
@@ -138,24 +188,37 @@ export default function ScannerClient({ locations }: { locations: Location[] }) 
     })
   }
 
+  const cfg = MODE_CONFIG[mode]
+
   return (
     <div className="max-w-lg mx-auto">
       <h1 className="text-2xl font-bold mb-4">Scanner</h1>
 
       {/* Controls */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4 flex flex-col gap-3">
+      <div className={`bg-white rounded-xl border-2 ${cfg.cardBorder} p-4 mb-4 flex flex-col gap-3 transition-colors`}>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
           {(['in', 'out', 'transfer'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                mode === m ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-gray-900'
+              className={`flex-1 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                mode === m ? MODE_CONFIG[m].tab : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {m === 'in' ? 'Stock In' : m === 'out' ? 'Take Out' : 'Transfer'}
+              {MODE_CONFIG[m].label}
             </button>
           ))}
+        </div>
+
+        {/* Active mode banner — makes the current mode unmistakable */}
+        <div className={`flex items-center gap-3 rounded-lg border px-3 py-2 ${cfg.banner}`}>
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white ${cfg.badge}`}>
+            {cfg.icon}
+          </span>
+          <div className="min-w-0">
+            <div className="text-sm font-bold uppercase tracking-wide leading-tight">{cfg.label}</div>
+            <div className="text-xs opacity-80 leading-tight">{cfg.description}</div>
+          </div>
         </div>
 
         <div>
@@ -252,9 +315,9 @@ export default function ScannerClient({ locations }: { locations: Location[] }) 
             <button
               onClick={submit}
               disabled={isPending}
-              className="flex-1 bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+              className={`flex-1 text-white rounded-lg py-2 text-sm font-medium disabled:opacity-50 ${cfg.button}`}
             >
-              {isPending ? 'Saving…' : mode === 'in' ? 'Stock in' : mode === 'out' ? 'Take out' : 'Transfer'}
+              {isPending ? 'Saving…' : cfg.verb}
             </button>
           </div>
         </div>
